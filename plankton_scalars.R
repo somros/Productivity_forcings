@@ -42,9 +42,18 @@ nep_ssp585$simulation = "ssp585"
 
 roms_avg_data <- do.call(rbind, list(nep_ssp126, nep_ssp245, nep_ssp585))
 
-# what are the available names?
-plankton_vars <- c("prod_Cop", "prod_Eup", "prod_MZL", "prod_MZS", "prod_PhL", "prod_PhS")
+# what are the variables of interest?
+plankton_vars <- c(
+  "prod_Phs",
+  "prod_PhL",
+  "prod_MZS",
+  "prod_MZL",
+  "prod_Cop",
+  "prod_NCa",
+  "prod_Eup"
+)
 
+# subset to variables of interest
 roms_avg_data <- roms_avg_data %>% 
   filter(varname %in% plankton_vars) %>%
   mutate(
@@ -52,35 +61,60 @@ roms_avg_data <- roms_avg_data %>%
     month = lubridate::month(date),
     year = lubridate::year(date))
 
+# aggregate (sum) variables to Atlantis groups
+# time-averaged small coastal copepod concentration <- Mesozooplankton
+# time-averaged euphausiid concentration <- Euphausiids
+# time-averaged large microzooplankton concentration <- Microzooplankton
+# time-averaged small microzooplankton concentration <- Microzooplankton
+# time-averaged neocalanus spp. concentration <- Mesozooplankton
+# time-averaged large phytoplankton concentration <- Diatoms
+# time-averaged small phytoplankton concentration <- Picophytoplankton
+
+key <- data.frame("varname" = plankton_vars,
+                  "Code" = c(
+  "PS",
+  "PL",
+  "ZS",
+  "ZS",
+  "ZM",
+  "ZM",
+  "EUP"
+))
+
+roms_avg_data <- roms_avg_data %>%
+  left_join(key, by = "varname") %>%
+  group_by(NMFS_AREA,depthclass,date,simulation,month,year,Code) %>%
+  summarise(value = sum(value))
+
 # view in time
 roms_avg_data %>%
   filter(NMFS_AREA == "All", month == 7) %>%
   ggplot(aes(x = date, y = value, color = simulation)) +
   geom_line()+
-  facet_wrap(depthclass~varname, scales = "free")
+  facet_wrap(depthclass~Code, scales = "free")
 
 # mean of first 10 years
 # mean of last 10 years
-# do spring surface eup, diatom, cop
+# do spring surface values based on spring bloom ideas
 # get clim
 roms_summary <- roms_avg_data %>%
   filter(NMFS_AREA == "All", # all areas on the shelf
          depthclass == "Surface", # surface only
          month %in% c(4:6)) %>% # spring quarter
-  group_by(varname, simulation, year) %>%
+  group_by(Code, simulation, year) %>%
   summarise(meanvar = mean(value))
 
 # present day hindcast
 roms_now <- roms_summary %>%
   filter(between(year, 2015,2024)) %>%
-  group_by(varname, simulation) %>%
+  group_by(Code, simulation) %>%
   summarise(clim = mean(meanvar)) %>%
   rename(now = clim)
 
 # end of century
 roms_eoc <- roms_summary %>%
   filter(between(year, 2090,2099)) %>%
-  group_by(varname, simulation) %>%
+  group_by(Code, simulation) %>%
   summarise(clim = mean(meanvar)) %>%
   rename(eoc = clim)
 
@@ -91,7 +125,7 @@ roms_change <- roms_now %>%
 
 # view
 roms_change %>%
-  ggplot(aes(x = varname, y = change, fill = simulation))+
+  ggplot(aes(x = Code, y = change, fill = simulation))+
   geom_bar(stat = "identity", position = position_dodge())
 
 # print
@@ -99,6 +133,8 @@ roms_change
 
 # save
 saveRDS(roms_change, "output/roms_change.RDS")
+
+# Map these to Atlantis groups
 
 # #######################
 # # Approach with time series decomposition
