@@ -22,6 +22,10 @@
 # Start: 2015:2024
 # End: 2090:2099
 
+# An alternative approach, still simple but perhaps better at capturing changes in the middle of the series,
+# is to still subset to spring surface but this time fit a linear model, and then compute the change from t1 to tend
+# Same idea but a bit less arbitrary
+
 library(tidyverse)
 library(lubridate)
 library(zoo)
@@ -93,6 +97,8 @@ roms_avg_data %>%
   geom_line()+
   facet_wrap(depthclass~Code, scales = "free")
 
+# approach 1: init vs end
+
 # mean of first 10 years
 # mean of last 10 years
 # do spring surface values based on spring bloom ideas
@@ -134,7 +140,49 @@ roms_change
 # save
 saveRDS(roms_change, "output/roms_change.RDS")
 
-# Map these to Atlantis groups
+# approach 2: linear trend and rate of change
+roms_summary2 <- roms_avg_data %>%
+  filter(NMFS_AREA == "All", # all areas on the shelf
+         depthclass == "Surface", # surface only
+         month %in% c(4:6)) %>% # spring quarter
+  group_by(Code, simulation, year) %>%
+  summarise(meanvar = mean(value))
+
+# view in time
+roms_summary2 %>%
+  ggplot(aes(x = year, y = meanvar, color = simulation)) +
+  geom_line()+
+  facet_wrap(~Code, scales = "free")
+
+linear_change <- roms_summary2 %>%
+  mutate(norm_year = year - 2014) %>%
+  group_by(Code, simulation) %>%
+  nest() %>%
+  mutate(
+    # Fit the linear model
+    model = map(data, ~lm(meanvar ~ norm_year, data = .)),
+    # Extract coefficients
+    intercept = map_dbl(model, ~coef(.)[1]),  # Value at 2015 (year 1)
+    slope = map_dbl(model, ~coef(.)[2]),      # Annual change
+    # Calculate fitted values for 2015 and 2100
+    fitted_2015 = intercept,  # Value at norm_year = 1
+    fitted_2100 = intercept + slope * (2100 - 2014),  # Value at norm_year = 86
+    # Calculate total and relative change
+    total_change = fitted_2100 - fitted_2015,
+    relative_change = fitted_2100 / fitted_2015,
+    # Calculate average annual percent change
+    annual_percent_change = slope / fitted_2015 * 100
+  ) %>%
+  select(Code, simulation, intercept, slope, fitted_2015, fitted_2100, 
+         total_change, relative_change, annual_percent_change)
+
+# view
+linear_change %>%
+  ggplot(aes(x = Code, y = relative_change, fill = simulation))+
+  geom_bar(stat = "identity", position = position_dodge())
+
+# save
+saveRDS(linear_change, "output/roms_change_lm.RDS")
 
 # #######################
 # # Approach with time series decomposition
