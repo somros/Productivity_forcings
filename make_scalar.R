@@ -37,8 +37,8 @@ this_geometry <- "GOA_WGS84_V4_final.bgm"
 # time array
 # 30 years burn-in
 # then start 2020 and do 2020-2100
-burnin <- 30
-simtime <- 80
+burnin <- 0#30
+simtime <- 86
 nyr <- burnin + simtime
 time_array <- seq(0, seconds_timestep * nyr, seconds_timestep)
 ntime <- length(time_array)
@@ -49,7 +49,7 @@ code_vars <- unique(ratios$Code)
 for(i in 1:length(ssp_vars)){
   ssp <- ssp_vars[i]
   
-  nc_name <- paste0('output/scalar_proj_ROMS_', ssp, '.nc')
+  nc_name <- paste0('output/scalar_proj_ROMS_', ssp, '_NoBurnin.nc')
   nc_file <- create.nc(nc_name)
   
   # set and write dimensions and global attributes of the ncfile
