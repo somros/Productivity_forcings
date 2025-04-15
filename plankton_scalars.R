@@ -25,6 +25,7 @@
 # An alternative approach, still simple but perhaps better at capturing changes in the middle of the series,
 # is to still subset to spring surface but this time fit a linear model, and then compute the change from t1 to tend
 # Same idea but a bit less arbitrary
+# Let's stick with this one
 
 library(tidyverse)
 library(lubridate)

@@ -1,7 +1,7 @@
 # Alberto Rovellini
 # 4/12/2025
 # Code to write external scaling input for plankton growth rates
-# ratios are created in plankto_scalars.R
+# ratios are created in plankton_scalars.R
 
 # See https://confluence.csiro.au/display/Atlantis/External+Mortality%2C+Growth+and+Recruitment+Scaling
 
