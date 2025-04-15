@@ -54,11 +54,6 @@ The scripts generate:
 - `output/roms_change_lm.RDS`: R data object containing relative changes in plankton production
 - NetCDF scalar files: `output/scalar_proj_ROMS_[ssp]_NoBurnin.nc` for each climate scenario (SSP126, SSP245, SSP585)
 
-## References
-
-For more information on external scaling in Atlantis, see:
-- [Atlantis External Mortality, Growth and Recruitment Scaling](https://confluence.csiro.au/display/Atlantis/External+Mortality%2C+Growth+and+Recruitment+Scaling)
-
 ## Notes
 
 These scalars are needed because simply forcing increased temperature and salinity from ROMS forcings does not lead to realistic responses. We are missing the half of the story relative to productivity, which we have found is really important for this region and model (Rovellini et al. 2024).
