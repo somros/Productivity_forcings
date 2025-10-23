@@ -104,44 +104,46 @@ roms_avg_data %>%
 # mean of last 10 years
 # do spring surface values based on spring bloom ideas
 # get clim
-roms_summary <- roms_avg_data %>%
-  filter(NMFS_AREA == "All", # all areas on the shelf
-         depthclass == "Surface", # surface only
-         month %in% c(4:6)) %>% # spring quarter
-  group_by(Code, simulation, year) %>%
-  summarise(meanvar = mean(value))
-
-# present day hindcast
-roms_now <- roms_summary %>%
-  filter(between(year, 2015,2024)) %>%
-  group_by(Code, simulation) %>%
-  summarise(clim = mean(meanvar)) %>%
-  rename(now = clim)
-
-# end of century
-roms_eoc <- roms_summary %>%
-  filter(between(year, 2090,2099)) %>%
-  group_by(Code, simulation) %>%
-  summarise(clim = mean(meanvar)) %>%
-  rename(eoc = clim)
-
-# combine
-roms_change <- roms_now %>%
-  left_join(roms_eoc) %>%
-  mutate(change = eoc / now)
-
-# view
-roms_change %>%
-  ggplot(aes(x = Code, y = change, fill = simulation))+
-  geom_bar(stat = "identity", position = position_dodge())
-
-# print
-roms_change
-
-# save
-saveRDS(roms_change, "output/roms_change.RDS")
+# roms_summary <- roms_avg_data %>%
+#   filter(NMFS_AREA == "All", # all areas on the shelf
+#          depthclass == "Surface", # surface only
+#          month %in% c(4:6)) %>% # spring quarter
+#   group_by(Code, simulation, year) %>%
+#   summarise(meanvar = mean(value))
+# 
+# # present day hindcast
+# roms_now <- roms_summary %>%
+#   filter(between(year, 2015,2024)) %>%
+#   group_by(Code, simulation) %>%
+#   summarise(clim = mean(meanvar)) %>%
+#   rename(now = clim)
+# 
+# # end of century
+# roms_eoc <- roms_summary %>%
+#   filter(between(year, 2090,2099)) %>%
+#   group_by(Code, simulation) %>%
+#   summarise(clim = mean(meanvar)) %>%
+#   rename(eoc = clim)
+# 
+# # combine
+# roms_change <- roms_now %>%
+#   left_join(roms_eoc) %>%
+#   mutate(change = eoc / now)
+# 
+# # view
+# roms_change %>%
+#   ggplot(aes(x = Code, y = change, fill = simulation))+
+#   geom_bar(stat = "identity", position = position_dodge())
+# 
+# # print
+# roms_change
+# 
+# # save
+# saveRDS(roms_change, "output/roms_change.RDS")
 
 # approach 2: linear trend and rate of change
+roms_avg_data <- roms_avg_data %>% filter(year >= 2020)
+
 roms_summary2 <- roms_avg_data %>%
   filter(NMFS_AREA == "All", # all areas on the shelf
          depthclass == "Surface", # surface only
@@ -156,7 +158,7 @@ roms_summary2 %>%
   facet_wrap(~Code, scales = "free")
 
 linear_change <- roms_summary2 %>%
-  mutate(norm_year = year - 2014) %>%
+  mutate(norm_year = year - 2019) %>%
   group_by(Code, simulation) %>%
   nest() %>%
   mutate(
@@ -167,7 +169,7 @@ linear_change <- roms_summary2 %>%
     slope = map_dbl(model, ~coef(.)[2]),      # Annual change
     # Calculate fitted values for 2015 and 2100
     fitted_2015 = intercept,  # Value at norm_year = 1
-    fitted_2100 = intercept + slope * (2100 - 2014),  # Value at norm_year = 86
+    fitted_2100 = intercept + slope * (2100 - 2019),  # Value at norm_year = 86
     # Calculate total and relative change
     total_change = fitted_2100 - fitted_2015,
     relative_change = fitted_2100 / fitted_2015,
